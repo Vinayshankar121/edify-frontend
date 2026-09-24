@@ -1,4 +1,4 @@
-# Edify School Hub
+﻿# Edify School Hub
 
 Yes. Based on the Edify School logo and the requirements in your quotation, you can give Copilot/Codex the following complete prompt. The quotation specifies a single-school web application with Super Admin and Cashier roles, student registration, parent details, classes/sections, fee management, receipts, reports, dashboard, search/filtering, academic years, and school settings.
 
@@ -15,8 +15,8 @@ This is FRONTEND ONLY.
 Technology requirements:
 - React.js
 - Vite
-- JavaScript or TypeScript
-- React Router
+- JavaScript and JSX only
+- TanStack Router
 - Tailwind CSS
 - Lucide React icons
 - LocalStorage for all data persistence
@@ -570,20 +570,20 @@ Create installment management.
 Example:
 
 Annual Fee
-₹30,000
+â‚¹30,000
 
 Installments:
 
 Term 1
-₹10,000
+â‚¹10,000
 Due Date
 
 Term 2
-₹10,000
+â‚¹10,000
 Due Date
 
 Term 3
-₹10,000
+â‚¹10,000
 Due Date
 
 Allow admin to configure installment schedules.
@@ -622,14 +622,14 @@ Show installment/fee-head breakdown.
 Example:
 
 Tuition Fee
-₹20,000
-Paid ₹10,000
-Balance ₹10,000
+â‚¹20,000
+Paid â‚¹10,000
+Balance â‚¹10,000
 
 Transport
-₹5,000
-Paid ₹5,000
-Balance ₹0
+â‚¹5,000
+Paid â‚¹5,000
+Balance â‚¹0
 
 Allow cashier to collect payment.
 
@@ -870,7 +870,7 @@ Create:
 - Fee installments
 - Payment records
 - Receipts
-- 2–3 cashier accounts
+- 2â€“3 cashier accounts
 
 Use realistic Indian school data.
 
@@ -1132,27 +1132,18 @@ For this particular project, LocalStorage is fine for the frontend prototype/dem
 
 For now, your flow can be:
 
-React + LocalStorage → build → deploy frontend → demonstrate to Edify School.
+React + LocalStorage â†’ build â†’ deploy frontend â†’ demonstrate to Edify School.
 
 The quotation itself specifies the system as a web application for a single school, with Super Admin and Cashier roles, so this prompt keeps the implementation focused instead of turning it into the larger multi-school ERP you have worked on previously.
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/01e67e96-aa80-4dea-8b40-00f61838937f).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Install dependencies and start the app locally:
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm install
 npm run dev
 ```
+
+Create a production build with `npm run build` and serve it locally with `npm run preview`.
+
