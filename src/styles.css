@@ -151,16 +151,24 @@
 @media print {
   body {
     background: #fff;
+    visibility: hidden;
   }
   .no-print {
     display: none !important;
   }
-  .print-area {
-    position: absolute;
+  #print-root,
+  #print-root * {
+    visibility: visible;
+  }
+  #print-root {
+    position: fixed;
     inset: 0;
+    width: 100%;
+    max-width: none;
+    padding: 16mm;
     margin: 0;
-    padding: 0;
-    box-shadow: none !important;
+    background: #fff;
     border: none !important;
+    box-shadow: none !important;
   }
 }
