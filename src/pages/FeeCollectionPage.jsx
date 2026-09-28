@@ -28,20 +28,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuth } from "@/context/AuthContext";
-import {
-  uid,
-  useActiveYear,
-  useFeeStructures,
-  usePayments,
-  useStudents,
-} from "@/hooks/useSchoolData";
-import { feeSummary, fullName, headBreakdown, inr, nextReceiptNo, today } from "@/lib/fees";
+import { apiRequest } from "@/lib/api";
+import { refreshCollection } from "@/lib/store";
+import { KEYS } from "@/lib/storage";
+import { useActiveYear, useFeeStructures, usePayments, useStudents } from "@/hooks/useSchoolData";
+import { feeSummary, fullName, headBreakdown, inr, today } from "@/lib/fees";
 import { cn } from "@/lib/utils";
 export function FeeCollectionPage() {
-  const { user } = useAuth();
   const { data: students } = useStudents();
-  const { data: payments, setData: setPayments } = usePayments();
+  const { data: payments } = usePayments();
   const { data: structures } = useFeeStructures();
   const { data: year } = useActiveYear();
   const [q, setQ] = useState("");
@@ -69,7 +64,7 @@ export function FeeCollectionPage() {
   const st = students.find((s) => s.id === selId);
   const f = st ? feeSummary(st, structures, payments) : null;
   const heads = st ? headBreakdown(st, structures, payments) : [];
-  const collect = () => {
+  const collect = async () => {
     if (!st || !f) return;
     const amt = Number(amount);
     if (!amt || amt <= 0) return setError("Enter a valid amount.");
@@ -77,27 +72,29 @@ export function FeeCollectionPage() {
       return setError(`Amount cannot exceed outstanding balance of ${inr(f.balance)}.`);
     if (mode !== "Cash" && !reference.trim())
       return setError("Reference / transaction number is required for non-cash payments.");
-    const receiptNo = nextReceiptNo(payments);
-    const p = {
-      id: uid(),
-      receiptNo,
-      studentId: st.id,
-      date,
-      amount: amt,
-      mode,
-      reference: reference.trim(),
-      remarks: remarks.trim(),
-      cashierName: user?.name ?? "—",
-      academicYear: st.academicYear,
-      status: "Success",
-    };
-    setPayments([...payments, p]);
-    toast.success(`Payment collected successfully. Receipt #${receiptNo} generated.`);
-    setAmount("");
-    setReference("");
-    setRemarks("");
-    setError("");
-    setReceipt(p);
+    try {
+      const p = await apiRequest("/payments", {
+        method: "POST",
+        body: {
+          studentId: st.id,
+          date,
+          amount: amt,
+          mode,
+          reference: reference.trim(),
+          remarks: remarks.trim(),
+          academicYear: st.academicYear,
+        },
+      });
+      await refreshCollection(KEYS.payments);
+      toast.success(`Payment collected successfully. Receipt #${p.receiptNo} generated.`);
+      setAmount("");
+      setReference("");
+      setRemarks("");
+      setError("");
+      setReceipt(p);
+    } catch (requestError) {
+      setError(requestError.message || "Could not collect payment.");
+    }
   };
   return (
     <>

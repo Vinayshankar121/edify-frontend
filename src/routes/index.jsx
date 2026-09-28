@@ -52,7 +52,7 @@ function LoginPage() {
       });
     }
   }, [ready, user, navigate]);
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError(undefined);
     if (!username || !password) {
@@ -60,20 +60,18 @@ function LoginPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      const result = login(username, password);
-      setLoading(false);
-      if (!result.ok || !result.user) {
-        setError(result.error);
-        return;
-      }
-      if (remember) localStorage.setItem("edify_remember", username);
-      toast.success(`Welcome back, ${result.user.name}`);
-      navigate({
-        to: result.user.role === "admin" ? "/admin/dashboard" : "/cashier/dashboard",
-        replace: true,
-      });
-    }, 450);
+    const result = await login(username, password);
+    setLoading(false);
+    if (!result.ok || !result.user) {
+      setError(result.error);
+      return;
+    }
+    if (remember) localStorage.setItem("edify_remember", username);
+    toast.success(`Welcome back, ${result.user.name}`);
+    navigate({
+      to: result.user.role === "admin" ? "/admin/dashboard" : "/cashier/dashboard",
+      replace: true,
+    });
   };
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
@@ -136,7 +134,7 @@ function LoginPage() {
           </p>
 
           <form onSubmit={submit} className="mt-8 space-y-5">
-            <Field label="Username or email" required>
+            <Field label="Username" required>
               <div className="relative">
                 <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -214,9 +212,7 @@ function LoginPage() {
           </form>
 
           <p className="mt-8 rounded-xl border border-dashed border-border p-4 text-xs leading-relaxed text-muted-foreground">
-            Demonstration build: sign-in and data are simulated in this browser's storage and are
-            not production-grade security. Administrator and cashier usernames are issued by the
-            school.
+            Sign in with the username and password issued by the school administrator.
           </p>
         </div>
       </div>

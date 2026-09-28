@@ -1,62 +1,54 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { seedDemoData } from "@/data/seed";
-import { KEYS, getStorage, removeStorage, setStorage } from "@/lib/storage";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { apiRequest, clearAccessToken, getAccessToken, setAccessToken } from "@/lib/api";
+import { clearCollectionCache } from "@/lib/store";
 const AuthContext = createContext(null);
-/**
- * Demo-only authentication backed by LocalStorage.
- * NOT production security — swap this provider for real JWT/session auth later.
- */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    seedDemoData();
-    setUser(getStorage(KEYS.auth, null));
-    setReady(true);
+    let mounted = true;
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener("edify:unauthorized", onUnauthorized);
+    const token = getAccessToken();
+    if (!token) {
+      setReady(true);
+      return () => {
+        mounted = false;
+        window.removeEventListener("edify:unauthorized", onUnauthorized);
+      };
+    }
+    apiRequest("/auth/me")
+      .then(({ user: currentUser }) => {
+        if (mounted) setUser(currentUser);
+      })
+      .catch(() => clearAccessToken())
+      .finally(() => {
+        if (mounted) setReady(true);
+      });
+    return () => {
+      mounted = false;
+      window.removeEventListener("edify:unauthorized", onUnauthorized);
+    };
   }, []);
-  const value = useMemo(
-    () => ({
-      user,
-      ready,
-      login: (username, password) => {
-        const admins = getStorage(KEYS.users, []);
-        const admin = admins.find(
-          (a) =>
-            a.username.toLowerCase() === username.trim().toLowerCase() && a.password === password,
-        );
-        if (admin) {
-          const next = { id: admin.id, name: admin.name, username: admin.username, role: "admin" };
-          setStorage(KEYS.auth, next);
-          setUser(next);
-          return { ok: true, user: next };
-        }
-        const cashiers = getStorage(KEYS.cashiers, []);
-        const cashier = cashiers.find(
-          (c) =>
-            c.username.toLowerCase() === username.trim().toLowerCase() && c.password === password,
-        );
-        if (cashier) {
-          if (cashier.status !== "active")
-            return { ok: false, error: "This account is deactivated. Contact the administrator." };
-          const next = {
-            id: cashier.id,
-            name: cashier.name,
-            username: cashier.username,
-            role: "cashier",
-          };
-          setStorage(KEYS.auth, next);
-          setUser(next);
-          return { ok: true, user: next };
-        }
-        return { ok: false, error: "Invalid username or password." };
-      },
-      logout: () => {
-        removeStorage(KEYS.auth);
-        setUser(null);
-      },
-    }),
-    [user, ready],
-  );
+  const login = useCallback(async (username, password) => {
+    try {
+      const result = await apiRequest("/auth/login", {
+        method: "POST",
+        body: { username: username.trim(), password },
+      });
+      setAccessToken(result.token);
+      setUser(result.user);
+      return { ok: true, user: result.user };
+    } catch (error) {
+      return { ok: false, error: error.message || "Unable to sign in." };
+    }
+  }, []);
+  const logout = useCallback(() => {
+    clearAccessToken();
+    clearCollectionCache();
+    setUser(null);
+  }, []);
+  const value = useMemo(() => ({ user, ready, login, logout }), [user, ready, login, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export function useAuth() {

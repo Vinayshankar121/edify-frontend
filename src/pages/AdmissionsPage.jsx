@@ -14,17 +14,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/context/AuthContext";
+import { apiRequest } from "@/lib/api";
+import { refreshCollection } from "@/lib/store";
+import { KEYS } from "@/lib/storage";
 import {
-  uid,
   useAcademicYears,
   useActiveYear,
   useClasses,
   useFeeStructures,
-  usePayments,
   useStudents,
 } from "@/hooks/useSchoolData";
-import { inr, nextReceiptNo, structureTotal, today } from "@/lib/fees";
+import { inr, structureTotal, today } from "@/lib/fees";
 import { cn } from "@/lib/utils";
 const STEPS = ["Student", "Parents", "Academic", "Fees", "Review"];
 const empty = (year, n) => ({
@@ -63,9 +63,7 @@ const phoneOk = (v) => !v || /^[6-9]\d{9}$/.test(v);
 const emailOk = (v) => !v || /^\S+@\S+\.\S+$/.test(v);
 export function AdmissionsPage({ editId }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { data: students, setData: setStudents, ready } = useStudents();
-  const { data: payments, setData: setPayments } = usePayments();
   const { data: classes } = useClasses();
   const { data: structures } = useFeeStructures();
   const { data: years } = useAcademicYears();
@@ -128,7 +126,7 @@ export function AdmissionsPage({ editId }) {
     return Object.keys(e).length === 0;
   };
   const next = () => validate(step) && setStep((s) => Math.min(s + 1, 4));
-  const submit = () => {
+  const submit = async () => {
     const { initialPayment, paymentMode, ...data } = f;
     if (editing) {
       setStudents(students.map((s) => (s.id === editing.id ? { ...data, id: editing.id } : s)));
@@ -136,29 +134,24 @@ export function AdmissionsPage({ editId }) {
       navigate({ to: "/admin/students/$id", params: { id: editing.id } });
       return;
     }
-    const id = uid();
-    setStudents([...students, { ...data, id }]);
-    if (initialPayment > 0) {
-      const receiptNo = nextReceiptNo(payments);
-      setPayments([
-        ...payments,
-        {
-          id: uid(),
-          receiptNo,
-          studentId: id,
-          date: today(),
-          amount: initialPayment,
-          mode: paymentMode,
-          reference: "",
-          remarks: "Admission payment",
-          cashierName: user?.name ?? "Admin",
-          academicYear: f.academicYear,
-          status: "Success",
-        },
+    try {
+      const created = await apiRequest("/students", {
+        method: "POST",
+        body: { ...data, initialPayment, paymentMode },
+      });
+      await Promise.all([
+        refreshCollection(KEYS.students),
+        ...(initialPayment > 0 ? [refreshCollection(KEYS.payments)] : []),
       ]);
-      toast.success(`Student successfully admitted. Receipt #${receiptNo} generated.`);
-    } else toast.success("Student successfully admitted.");
-    navigate({ to: "/admin/students/$id", params: { id } });
+      if (created.payment) {
+        toast.success(
+          `Student successfully admitted. Receipt #${created.payment.receiptNo} generated.`,
+        );
+      } else toast.success("Student successfully admitted.");
+      navigate({ to: "/admin/students/$id", params: { id: created.id } });
+    } catch (error) {
+      toast.error(error.message || "Could not complete admission.");
+    }
   };
   const inp = (k, label, opts = {}) => (
     <Field label={label} required={opts.required} error={errors[k]}>

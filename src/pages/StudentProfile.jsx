@@ -47,8 +47,12 @@ export function StudentProfile({ id, base }) {
     );
   const f = feeSummary(s, structures, payments);
   const heads = headBreakdown(s, structures, payments);
+  const enrollments = students
+    .filter((student) => student.studentId === s.studentId)
+    .sort((left, right) => right.academicYear.localeCompare(left.academicYear));
+  const enrollmentIds = new Set(enrollments.map((enrollment) => enrollment.id));
   const history = payments
-    .filter((p) => p.studentId === s.id)
+    .filter((payment) => enrollmentIds.has(payment.studentId))
     .sort((a, b) => b.date.localeCompare(a.date));
   const structure = structures.find((x) => x.id === s.structureId);
   const myTerms = terms.filter((t) => t.structureId === s.structureId);
@@ -164,42 +168,79 @@ export function StudentProfile({ id, base }) {
             </SectionCard>
           </TabsContent>
           <TabsContent value="fees">
-            <SectionCard
-              title={structure?.name ?? "Fee structure"}
-              description={`Discount ${inr(f.discount)}`}
-            >
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fee head</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {heads.map((h) => (
-                    <TableRow key={h.name}>
-                      <TableCell>{h.name}</TableCell>
-                      <TableCell className="text-right">{inr(h.amount)}</TableCell>
-                      <TableCell className="text-right">{inr(h.paid)}</TableCell>
-                      <TableCell className="text-right font-medium">{inr(h.balance)}</TableCell>
+            <div className="space-y-5">
+              <SectionCard
+                title={structure?.name ?? "Fee structure"}
+                description={`${s.academicYear} · Discount ${inr(f.discount)}`}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fee head</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {myTerms.length > 0 && (
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  {myTerms.map((t) => (
-                    <div key={t.id} className="rounded-xl border border-border p-4">
-                      <p className="text-sm font-medium">{t.name}</p>
-                      <p className="text-lg font-semibold">{inr(t.amount)}</p>
-                      <p className="text-xs text-muted-foreground">Due {t.dueDate}</p>
-                    </div>
-                  ))}
+                  </TableHeader>
+                  <TableBody>
+                    {heads.map((h) => (
+                      <TableRow key={h.name}>
+                        <TableCell>{h.name}</TableCell>
+                        <TableCell className="text-right">{inr(h.amount)}</TableCell>
+                        <TableCell className="text-right">{inr(h.paid)}</TableCell>
+                        <TableCell className="text-right font-medium">{inr(h.balance)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {myTerms.length > 0 && (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    {myTerms.map((t) => (
+                      <div key={t.id} className="rounded-xl border border-border p-4">
+                        <p className="text-sm font-medium">{t.name}</p>
+                        <p className="text-lg font-semibold">{inr(t.amount)}</p>
+                        <p className="text-xs text-muted-foreground">Due {t.dueDate}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+              <SectionCard title="Fee history by academic year">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Academic year</TableHead>
+                        <TableHead>Class</TableHead>
+                        <TableHead className="text-right">Payable</TableHead>
+                        <TableHead className="text-right">Paid</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enrollments.map((enrollment) => {
+                        const summary = feeSummary(enrollment, structures, payments);
+                        return (
+                          <TableRow key={enrollment.id}>
+                            <TableCell className="font-medium">{enrollment.academicYear}</TableCell>
+                            <TableCell>
+                              {enrollment.className} · {enrollment.section}
+                            </TableCell>
+                            <TableCell className="text-right">{inr(summary.payable)}</TableCell>
+                            <TableCell className="text-right">{inr(summary.paid)}</TableCell>
+                            <TableCell className="text-right">{inr(summary.balance)}</TableCell>
+                            <TableCell>
+                              <StatusBadge status={summary.status} />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
-              )}
-            </SectionCard>
+              </SectionCard>
+            </div>
           </TabsContent>
           <TabsContent value="history">
             <SectionCard title="Payments">
@@ -211,6 +252,7 @@ export function StudentProfile({ id, base }) {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Receipt</TableHead>
+                        <TableHead>Academic year</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Mode</TableHead>
@@ -222,6 +264,7 @@ export function StudentProfile({ id, base }) {
                       {history.map((p) => (
                         <TableRow key={p.id}>
                           <TableCell className="font-medium">{p.receiptNo}</TableCell>
+                          <TableCell>{p.academicYear}</TableCell>
                           <TableCell>{p.date}</TableCell>
                           <TableCell>{inr(p.amount)}</TableCell>
                           <TableCell>{p.mode}</TableCell>

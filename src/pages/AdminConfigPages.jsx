@@ -61,6 +61,17 @@ import {
   useStudents,
 } from "@/hooks/useSchoolData";
 import { inr, structureTotal, today } from "@/lib/fees";
+import { StudentPromotionPanel } from "@/pages/StudentPromotionPanel";
+
+const parseSections = (value) => [
+  ...new Set(
+    value
+      .split(/[,;\n]+/)
+      .map((section) => section.trim().toUpperCase())
+      .filter(Boolean),
+  ),
+];
+
 /* ---------------- Classes & Sections ---------------- */
 export function ClassesPage() {
   const { data: classes, setData } = useClasses();
@@ -78,14 +89,7 @@ export function ClassesPage() {
     setSections(c?.sections.join(", ") ?? "A");
   };
   const save = () => {
-    const secs = [
-      ...new Set(
-        sections
-          .split(",")
-          .map((s) => s.trim().toUpperCase())
-          .filter(Boolean),
-      ),
-    ];
+    const secs = parseSections(sections);
     if (!name.trim() || secs.length === 0)
       return toast.error("Class name and at least one section are required.");
     if (edit?.id) {
@@ -98,10 +102,24 @@ export function ClassesPage() {
         );
       toast.success("Class updated.");
     } else {
-      if (classes.some((c) => c.name.toLowerCase() === name.trim().toLowerCase()))
-        return toast.error("Class already exists.");
-      setData([...classes, { id: uid(), name: name.trim(), sections: secs }]);
-      toast.success("Class added.");
+      const existing = classes.find(
+        (c) => c.name.trim().toLowerCase() === name.trim().toLowerCase(),
+      );
+      if (existing) {
+        const mergedSections = [
+          ...new Set([...existing.sections, ...secs].map((section) => section.toUpperCase())),
+        ];
+        if (mergedSections.length === existing.sections.length) {
+          return toast.error("Those sections already exist for this class.");
+        }
+        setData(
+          classes.map((c) => (c.id === existing.id ? { ...c, sections: mergedSections } : c)),
+        );
+        toast.success(`Sections added to ${existing.name}.`);
+      } else {
+        setData([...classes, { id: uid(), name: name.trim(), sections: secs }]);
+        toast.success("Class added.");
+      }
     }
     setEdit(null);
   };
@@ -184,11 +202,12 @@ export function ClassesPage() {
             <Field label="Class name" required>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Class 7" />
             </Field>
-            <Field label="Sections (comma separated)" required>
-              <Input
+            <Field label="Sections (separate with commas, semicolons, or new lines)" required>
+              <Textarea
                 value={sections}
                 onChange={(e) => setSections(e.target.value)}
                 placeholder="A, B, C"
+                rows={3}
               />
             </Field>
           </div>
@@ -665,7 +684,6 @@ export function AcademicYearsPage() {
     toast.success("Academic year added.");
   };
   const makeActive = (n) => {
-    setData(years.map((y) => ({ ...y, active: y.name === n })));
     setActive(n);
     toast.success(`${n} is now the active academic year.`);
   };
@@ -704,7 +722,6 @@ export function AcademicYearsPage() {
                         if (!/^\d{4}-\d{4}$/.test(editName))
                           return toast.error("Use the format 2028-2029.");
                         setData(years.map((x) => (x.id === y.id ? { ...x, name: editName } : x)));
-                        if (isActive) setActive(editName);
                         setEditId(null);
                         toast.success("Academic year updated.");
                       }}
@@ -754,6 +771,7 @@ export function AcademicYearsPage() {
           );
         })}
       </div>
+      <StudentPromotionPanel />
     </>
   );
 }
