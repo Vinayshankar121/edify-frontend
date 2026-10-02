@@ -25,4 +25,9 @@ export default [
     },
   },
   eslintPluginPrettier,
+  {
+    rules: {
+      "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
 ];

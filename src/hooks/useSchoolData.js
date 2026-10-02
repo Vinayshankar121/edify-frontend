@@ -1,16 +1,15 @@
-import { KEYS } from "@/lib/storage";
-import { useCollection } from "@/lib/store";
-export const useStudents = () => useCollection(KEYS.students, []);
-export const usePayments = () => useCollection(KEYS.payments, []);
-export const useClasses = () => useCollection(KEYS.classes, []);
-export const useFeeStructures = () => useCollection(KEYS.feeStructures, []);
-export const useFeeTerms = () => useCollection(KEYS.feeTerms, []);
-export const useCashiers = () => useCollection(KEYS.cashiers, []);
-export const useAcademicYears = () => useCollection(KEYS.academicYears, []);
-export const useActiveYear = () => useCollection(KEYS.activeYear, "2025-2026");
+import { COLLECTIONS, useCollection } from "@/lib/store";
+export const useStudents = () => useCollection(COLLECTIONS.students, []);
+export const usePayments = () => useCollection(COLLECTIONS.payments, []);
+export const useClasses = () => useCollection(COLLECTIONS.classes, []);
+export const useFeeStructures = () => useCollection(COLLECTIONS.feeStructures, []);
+export const useFeeTerms = () => useCollection(COLLECTIONS.feeTerms, []);
+export const useCashiers = () => useCollection(COLLECTIONS.cashiers, []);
+export const useAcademicYears = () => useCollection(COLLECTIONS.academicYears, []);
+export const useActiveYear = () => useCollection(COLLECTIONS.activeYear, "2025-2026");
 export const useSettings = () =>
-  useCollection(KEYS.settings, {
-    schoolName: "Edify School",
+  useCollection(COLLECTIONS.settings, {
+    schoolName: "NR Edify English Medium School",
     tagline: "Think Beyond",
     location: "Thikkonda",
     address: "",

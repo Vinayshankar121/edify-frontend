@@ -2,9 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, GraduationCap, Loader2, Lock, ShieldCheck, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import logo from "@/assets/edify-logo.png";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -21,15 +19,20 @@ export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Sign in — Edify School Management System" },
+      { title: "Sign in — NR Edify English Medium School Management System" },
       {
         name: "description",
-        content: "Secure sign in for Edify School Thikkonda administrators and fee cashiers.",
+        content:
+          "Secure sign in for NR Edify English Medium School Thikkonda administrators and fee cashiers.",
       },
-      { property: "og:title", content: "Sign in — Edify School Management System" },
+      {
+        property: "og:title",
+        content: "Sign in — NR Edify English Medium School Management System",
+      },
       {
         property: "og:description",
-        content: "Sign in to manage admissions, fee collection and receipts at Edify School.",
+        content:
+          "Sign in to manage admissions, fee collection and receipts at NR Edify English Medium School.",
       },
     ],
   }),
@@ -41,7 +44,6 @@ function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState();
   useEffect(() => {
@@ -66,7 +68,6 @@ function LoginPage() {
       setError(result.error);
       return;
     }
-    if (remember) localStorage.setItem("edify_remember", username);
     toast.success(`Welcome back, ${result.user.name}`);
     navigate({
       to: result.user.role === "admin" ? "/admin/dashboard" : "/cashier/dashboard",
@@ -79,9 +80,17 @@ function LoginPage() {
         <div className="absolute -right-24 top-16 size-80 rounded-full bg-primary/25 blur-3xl" />
         <div className="absolute -left-16 bottom-0 size-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <img src={logo} alt="Edify School" width={48} height={48} className="size-12" />
+          <img
+            src="/nr-edify-logo.svg"
+            alt="NR Edify English Medium School"
+            width={72}
+            height={56}
+            className="h-14 w-[4.5rem] object-contain"
+          />
           <div>
-            <p className="text-lg font-semibold uppercase tracking-wide">Edify School</p>
+            <p className="text-lg font-semibold uppercase tracking-wide">
+              NR Edify English Medium School
+            </p>
             <p className="text-xs uppercase tracking-[0.3em] text-sidebar-foreground/60">
               Think Beyond
             </p>
@@ -93,7 +102,7 @@ function LoginPage() {
           </h1>
           <p className="text-sm leading-relaxed text-sidebar-foreground/70">
             Admissions, class management, fee structures, collections, receipts and reports — one
-            calm workspace for the Edify School front office at Thikkonda.
+            calm workspace for the NR Edify English Medium School front office at Thikkonda.
           </p>
           <ul className="space-y-3 text-sm text-sidebar-foreground/80">
             {[
@@ -109,16 +118,25 @@ function LoginPage() {
           </ul>
         </div>
         <p className="relative text-xs text-sidebar-foreground/45">
-          © {new Date().getFullYear()} Edify School, Thikkonda. All rights reserved.
+          © {new Date().getFullYear()} NR Edify English Medium School, Thikkonda. All rights
+          reserved.
         </p>
       </div>
 
       <div className="flex items-center justify-center px-5 py-12 sm:px-10">
         <div className="animate-rise w-full max-w-md">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <img src={logo} alt="Edify School" width={44} height={44} className="size-11" />
+            <img
+              src="/nr-edify-logo.svg"
+              alt="NR Edify English Medium School"
+              width={64}
+              height={50}
+              className="h-12 w-16 object-contain"
+            />
             <div>
-              <p className="font-semibold uppercase tracking-wide">Edify School</p>
+              <p className="font-semibold uppercase tracking-wide">
+                NR Edify English Medium School
+              </p>
               <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
                 Think Beyond
               </p>
@@ -169,11 +187,7 @@ function LoginPage() {
               </div>
             </Field>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Checkbox checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} />
-                Remember me
-              </label>
+            <div className="flex justify-end">
               <Dialog>
                 <DialogTrigger asChild>
                   <button

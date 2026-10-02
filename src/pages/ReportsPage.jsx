@@ -1,5 +1,6 @@
 import { Download, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { PageHeader, SectionCard, StatCard, StatusBadge } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,9 @@ import {
   usePayments,
   useStudents,
 } from "@/hooks/useSchoolData";
-import { downloadCsv, feeSummary, fullName, inr } from "@/lib/fees";
+import { feeSummary, fullName, inr } from "@/lib/fees";
 import { printDocument } from "@/lib/print";
+import { downloadReportWorkbook } from "@/lib/reportExport";
 import { CreditCard, IndianRupee, TrendingDown, Users } from "lucide-react";
 const ALL = "all";
 const REPORTS = [
@@ -123,7 +125,9 @@ export function ReportsPage() {
             ? f.status !== "Paid"
             : report === "Paid Fee"
               ? f.status === "Paid"
-              : true,
+              : report === "Balance Fee"
+                ? f.balance > 0
+                : true,
         );
         return {
           columns: ["Admission No", "Student", "Class", "Payable", "Paid", "Balance", "Status"],
@@ -140,6 +144,115 @@ export function ReportsPage() {
       }
     }
   }, [report, filteredPayments, summaries, students]);
+
+  const feeReportRows = summaries.filter(({ f }) =>
+    report === "Pending Fee"
+      ? f.status !== "Paid"
+      : report === "Paid Fee"
+        ? f.status === "Paid"
+        : report === "Balance Fee"
+          ? f.balance > 0
+          : true,
+  );
+  const feeDetailColumns = [
+    "Admission No",
+    "Student ID",
+    "Student",
+    "Academic Year",
+    "Class",
+    "Section",
+    "Roll No",
+    "Fee Structure",
+    "Fee Total",
+    "Discount",
+    "Payable",
+    "Paid",
+    "Balance",
+    "Status",
+  ];
+  const feeDetails = feeReportRows.map(({ s, f }) => ({
+    "Admission No": s.admissionNo,
+    "Student ID": s.studentId,
+    Student: fullName(s),
+    "Academic Year": s.academicYear,
+    Class: s.className,
+    Section: s.section,
+    "Roll No": s.rollNo,
+    "Fee Structure": structures.find((item) => item.id === s.structureId)?.name ?? "",
+    "Fee Total": f.total,
+    Discount: f.discount,
+    Payable: f.payable,
+    Paid: f.paid,
+    Balance: f.balance,
+    Status: f.status,
+  }));
+  const paymentDetailColumns = [
+    "Receipt",
+    "Date",
+    "Academic Year",
+    "Admission No",
+    "Student ID",
+    "Student",
+    "Class",
+    "Section",
+    "Amount",
+    "Mode",
+    "Reference",
+    "Remarks",
+    "Cashier",
+    "Status",
+  ];
+  const paymentDetails = filteredPayments.map((payment) => {
+    const student = students.find((item) => item.id === payment.studentId);
+    return {
+      Receipt: payment.receiptNo,
+      Date: payment.date,
+      "Academic Year": payment.academicYear,
+      "Admission No": payment.admissionNo ?? student?.admissionNo ?? "",
+      "Student ID": student?.studentId ?? "",
+      Student: payment.studentName || (student ? fullName(student) : ""),
+      Class: student?.className ?? "",
+      Section: student?.section ?? "",
+      Amount: payment.amount,
+      Mode: payment.mode,
+      Reference: payment.reference,
+      Remarks: payment.remarks,
+      Cashier: payment.cashierName,
+      Status: payment.status,
+    };
+  });
+  const isFeeReport = ["Pending Fee", "Paid Fee", "Balance Fee"].includes(report);
+  const detailColumns = isFeeReport ? feeDetailColumns : paymentDetailColumns;
+  const details = isFeeReport ? feeDetails : paymentDetails;
+  const exportReport = async () => {
+    try {
+      await downloadReportWorkbook({
+        report,
+        academicYear: year,
+        columns,
+        rows,
+        detailColumns,
+        details,
+        filters: {
+          From: from || "All",
+          To: to || "All",
+          Class: cls === ALL ? "All classes" : cls,
+          Section: sec === ALL ? "All sections" : sec,
+          Cashier: cashier === ALL ? "All cashiers" : cashier,
+          "Payment mode": mode === ALL ? "All modes" : mode,
+        },
+        totals: {
+          transactions: filteredPayments.length,
+          students: yearStudents.length,
+          collected,
+          pending,
+        },
+      });
+      toast.success("Detailed report downloaded.");
+    } catch (error) {
+      toast.error(error.message || "Could not download the report.");
+    }
+  };
   return (
     <>
       <PageHeader
@@ -150,12 +263,8 @@ export function ReportsPage() {
             <Button variant="outline" onClick={() => printDocument("report")}>
               <Printer className="mr-2 size-4" /> Print report
             </Button>
-            <Button
-              onClick={() =>
-                downloadCsv(`${report.replace(/\s/g, "-").toLowerCase()}-${year}.csv`, rows)
-              }
-            >
-              <Download className="mr-2 size-4" /> Download CSV
+            <Button onClick={() => void exportReport()}>
+              <Download className="mr-2 size-4" /> Download Excel
             </Button>
           </>
         }

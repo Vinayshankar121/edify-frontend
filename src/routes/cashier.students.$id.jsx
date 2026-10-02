@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { StudentProfile } from "@/pages/StudentProfile";
 
 function CashierStudentProfileRoute() {
@@ -6,6 +6,6 @@ function CashierStudentProfileRoute() {
 }
 
 export const Route = createFileRoute("/cashier/students/$id")({
-  head: () => ({ meta: [{ title: "Student Profile — Edify School" }] }),
+  head: () => ({ meta: [{ title: "Student Profile — NR Edify English Medium School" }] }),
   component: CashierStudentProfileRoute,
 });

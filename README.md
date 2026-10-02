@@ -1,6 +1,8 @@
 ﻿# Edify School Hub
 
-Yes. Based on the Edify School logo and the requirements in your quotation, you can give Copilot/Codex the following complete prompt. The quotation specifies a single-school web application with Super Admin and Cashier roles, student registration, parent details, classes/sections, fee management, receipts, reports, dashboard, search/filtering, academic years, and school settings.
+The current frontend is a Vite/React application that uses the Edify backend API for authentication and school data. Start the backend and PostgreSQL by following `../backend/README.md`, then run `npm install` and `npm run dev` from this directory. Set `VITE_API_URL` to the backend's `/api` URL when it differs from `http://localhost:4000/api`.
+
+The design brief below is historical and describes an earlier localStorage-only prototype; it is not an accurate description of the current persistence or authentication model.
 
 Complete prompt
 

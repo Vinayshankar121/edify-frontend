@@ -2,6 +2,18 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiRequest } from "./api";
 
+export const COLLECTIONS = {
+  cashiers: "edify_cashiers",
+  students: "edify_students",
+  classes: "edify_classes",
+  feeStructures: "edify_fee_structures",
+  feeTerms: "edify_fee_terms",
+  payments: "edify_payments",
+  academicYears: "edify_academic_years",
+  settings: "edify_school_settings",
+  activeYear: "edify_active_year",
+};
+
 const endpoints = {
   edify_cashiers: "/cashiers",
   edify_students: "/students",

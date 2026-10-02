@@ -121,7 +121,7 @@ export function AdminDashboard() {
     <>
       <PageHeader
         title={`${greeting()}, ${user?.name ?? "Admin"}`}
-        subtitle="Here's what's happening at Edify School today."
+        subtitle="Here's what's happening at NR Edify English Medium School today."
         actions={
           <>
             <Button variant="outline" asChild>

@@ -29,8 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiRequest } from "@/lib/api";
-import { refreshCollection } from "@/lib/store";
-import { KEYS } from "@/lib/storage";
+import { COLLECTIONS, refreshCollection } from "@/lib/store";
 import { useActiveYear, useFeeStructures, usePayments, useStudents } from "@/hooks/useSchoolData";
 import { feeSummary, fullName, headBreakdown, inr, today } from "@/lib/fees";
 import { cn } from "@/lib/utils";
@@ -85,7 +84,7 @@ export function FeeCollectionPage() {
           academicYear: st.academicYear,
         },
       });
-      await refreshCollection(KEYS.payments);
+      await refreshCollection(COLLECTIONS.payments);
       toast.success(`Payment collected successfully. Receipt #${p.receiptNo} generated.`);
       setAmount("");
       setReference("");

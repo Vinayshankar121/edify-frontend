@@ -47,7 +47,7 @@ export function CashierDashboard() {
     <>
       <PageHeader
         title={`${greeting()}, ${user?.name ?? "Cashier"}`}
-        subtitle="Front desk fee counter — Edify School, Thikkonda."
+        subtitle="Front desk fee counter — NR Edify English Medium School, Thikkonda."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

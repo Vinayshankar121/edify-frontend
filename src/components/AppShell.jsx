@@ -17,7 +17,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import logo from "@/assets/edify-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -37,8 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
-import { useCollection } from "@/lib/store";
-import { KEYS } from "@/lib/storage";
+import { COLLECTIONS, useCollection } from "@/lib/store";
 import { cn } from "@/lib/utils";
 const adminNav = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -69,9 +67,12 @@ export function AppShell({ children }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
-  const { data: years } = useCollection(KEYS.academicYears, []);
-  const { data: activeYear, setData: setActiveYear } = useCollection(KEYS.activeYear, "2025-2026");
-  const { data: settings } = useCollection(KEYS.settings, null);
+  const { data: years } = useCollection(COLLECTIONS.academicYears, []);
+  const { data: activeYear, setData: setActiveYear } = useCollection(
+    COLLECTIONS.activeYear,
+    "2025-2026",
+  );
+  const { data: settings } = useCollection(COLLECTIONS.settings, null);
   const nav = user?.role === "admin" ? adminNav : cashierNav;
   const current = nav.find((n) => pathname.startsWith(n.to));
   useEffect(() => setDrawer(false), [pathname]);
@@ -82,11 +83,17 @@ export function AppShell({ children }) {
   const sidebar = (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-3 px-4 py-5">
-        <img src={logo} alt="Edify School" width={40} height={40} className="size-10 shrink-0" />
+        <img
+          src="/nr-edify-logo.svg"
+          alt="NR Edify English Medium School"
+          width={64}
+          height={50}
+          className="h-10 w-16 shrink-0 object-contain"
+        />
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold uppercase tracking-wide">
-              {settings?.schoolName ?? "Edify School"}
+              {settings?.schoolName ?? "NR Edify English Medium School"}
             </p>
             <p className="truncate text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/60">
               {settings?.tagline ?? "Think Beyond"}
@@ -168,7 +175,8 @@ export function AppShell({ children }) {
                 {current?.label ?? "Dashboard"}
               </p>
               <p className="hidden text-xs text-muted-foreground sm:block">
-                {settings?.schoolName ?? "Edify School"} · {settings?.location ?? "Thikkonda"}
+                {settings?.schoolName ?? "NR Edify English Medium School"} ·{" "}
+                {settings?.location ?? "Thikkonda"}
               </p>
             </div>
 
@@ -191,7 +199,11 @@ export function AppShell({ children }) {
                 />
               </div>
 
-              <Select value={activeYear} onValueChange={setActiveYear}>
+              <Select
+                value={activeYear}
+                onValueChange={setActiveYear}
+                disabled={user?.role !== "admin"}
+              >
                 <SelectTrigger className="hidden w-[140px] sm:flex" aria-label="Academic year">
                   <SelectValue />
                 </SelectTrigger>

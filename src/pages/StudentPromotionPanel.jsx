@@ -33,13 +33,7 @@ import {
   useStudents,
 } from "@/hooks/useSchoolData";
 import { apiRequest } from "@/lib/api";
-import { refreshCollection } from "@/lib/store";
-import { KEYS } from "@/lib/storage";
-
-function nextClassName(name) {
-  const match = /^class\s+(\d+)$/i.exec(name);
-  return match ? `Class ${Number(match[1]) + 1}` : "";
-}
+import { COLLECTIONS, refreshCollection } from "@/lib/store";
 
 function classSections(classRecord) {
   if (!classRecord) return [];
@@ -57,6 +51,13 @@ export function StudentPromotionPanel() {
   const { data: activeYear } = useActiveYear();
   const { data: classes } = useClasses();
   const { data: structures } = useFeeStructures();
+  const orderedClasses = useMemo(
+    () =>
+      [...classes].sort((left, right) =>
+        left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: "base" }),
+      ),
+    [classes],
+  );
   const [sourceYear, setSourceYear] = useState("");
   const [targetYear, setTargetYear] = useState("");
   const [choices, setChoices] = useState({});
@@ -90,24 +91,30 @@ export function StudentPromotionPanel() {
     }
     const initial = {};
     for (const student of sourceStudents) {
-      const suggestedClass = nextClassName(student.className);
-      const targetClass = classes.find((item) => item.name === suggestedClass);
+      const sourceClassIndex = orderedClasses.findIndex((item) => item.name === student.className);
+      const isFinalClass = sourceClassIndex === orderedClasses.length - 1 && sourceClassIndex >= 0;
+      const targetClass =
+        sourceClassIndex < 0 || isFinalClass ? null : orderedClasses[sourceClassIndex + 1];
       const sections = classSections(targetClass);
-      const section = sections.includes(student.section) ? student.section : (sections[0] ?? "");
+      const currentSection = String(student.section ?? "")
+        .trim()
+        .toUpperCase();
+      const section = sections.includes(currentSection) ? currentSection : (sections[0] ?? "");
       const structure = structures.find(
         (item) =>
-          item.academicYear === targetYear && item.className === suggestedClass && item.active,
+          item.academicYear === targetYear && item.className === targetClass?.name && item.active,
       );
       initial[student.id] = {
-        selected: Boolean(targetClass && section && structure),
+        selected: Boolean(!isFinalClass && targetClass && section && structure),
         className: targetClass?.name ?? "",
         section,
         structureId: structure?.id ?? "",
         discount: student.discount ?? 0,
+        isFinalClass,
       };
     }
     setChoices(initial);
-  }, [sourceYear, targetYear, sourceStudents, classes, structures]);
+  }, [sourceYear, targetYear, sourceStudents, orderedClasses, structures]);
 
   const selected = sourceStudents.filter((student) => choices[student.id]?.selected);
   const updateChoice = (id, update) =>
@@ -151,7 +158,7 @@ export function StudentPromotionPanel() {
           })),
         },
       });
-      await refreshCollection(KEYS.students);
+      await refreshCollection(COLLECTIONS.students);
       setConfirmOpen(false);
       toast.success(
         `${promoted.length} student${promoted.length === 1 ? "" : "s"} promoted to ${targetYear}.`,
@@ -169,8 +176,9 @@ export function StudentPromotionPanel() {
         <div className="mb-4">
           <h2 className="text-lg font-semibold">Promote students</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Promotions create a new year enrollment. Previous-year classes, fees, and receipts
-            remain unchanged.
+            Students are assigned to the next configured class automatically, keeping their section
+            when available. The final class is not promoted; review and adjust other assignments
+            before confirming. Previous-year records remain unchanged.
           </p>
         </div>
         <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -233,6 +241,12 @@ export function StudentPromotionPanel() {
                 <TableBody>
                   {sourceStudents.map((student) => {
                     const choice = choices[student.id] ?? {};
+                    const sourceClassIndex = orderedClasses.findIndex(
+                      (item) => item.name === student.className,
+                    );
+                    const isFinalClass =
+                      choice.isFinalClass ??
+                      (sourceClassIndex === orderedClasses.length - 1 && sourceClassIndex >= 0);
                     const targetClass = classes.find((item) => item.name === choice.className);
                     const sections = classSections(targetClass);
                     const availableStructures = structures.filter(
@@ -246,6 +260,7 @@ export function StudentPromotionPanel() {
                         <TableCell>
                           <Checkbox
                             checked={choice.selected ?? false}
+                            disabled={isFinalClass}
                             onCheckedChange={(checked) =>
                               updateChoice(student.id, { selected: Boolean(checked) })
                             }
@@ -259,64 +274,77 @@ export function StudentPromotionPanel() {
                           {student.className} · {student.section}
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={choice.className ?? ""}
-                            onValueChange={(value) => changeClass(student.id, value)}
-                          >
-                            <SelectTrigger aria-label={`Next class for ${student.firstName}`}>
-                              <SelectValue placeholder="Assign class" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {classes.map((item) => (
-                                <SelectItem key={item.id} value={item.name}>
-                                  {item.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {isFinalClass ? (
+                            <span className="text-sm text-muted-foreground">Final class</span>
+                          ) : (
+                            <Select
+                              value={choice.className ?? ""}
+                              onValueChange={(value) => changeClass(student.id, value)}
+                            >
+                              <SelectTrigger aria-label={`Next class for ${student.firstName}`}>
+                                <SelectValue placeholder="Assign class" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {classes.map((item) => (
+                                  <SelectItem key={item.id} value={item.name}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={choice.section || undefined}
-                            onValueChange={(section) => updateChoice(student.id, { section })}
-                            disabled={!sections.length}
-                          >
-                            <SelectTrigger aria-label={`Next section for ${student.firstName}`}>
-                              <SelectValue placeholder="Section" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {sections.map((section) => (
-                                <SelectItem key={section} value={section}>
-                                  {section}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {isFinalClass ? (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          ) : (
+                            <Select
+                              value={choice.section || undefined}
+                              onValueChange={(section) => updateChoice(student.id, { section })}
+                              disabled={!sections.length}
+                            >
+                              <SelectTrigger aria-label={`Next section for ${student.firstName}`}>
+                                <SelectValue placeholder="Section" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sections.map((section) => (
+                                  <SelectItem key={section} value={section}>
+                                    {section}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={choice.structureId || undefined}
-                            onValueChange={(structureId) =>
-                              updateChoice(student.id, { structureId })
-                            }
-                            disabled={!availableStructures.length}
-                          >
-                            <SelectTrigger aria-label={`Fee structure for ${student.firstName}`}>
-                              <SelectValue placeholder="Fee structure" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableStructures.map((structure) => (
-                                <SelectItem key={structure.id} value={structure.id}>
-                                  {structure.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {isFinalClass ? (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          ) : (
+                            <Select
+                              value={choice.structureId || undefined}
+                              onValueChange={(structureId) =>
+                                updateChoice(student.id, { structureId })
+                              }
+                              disabled={!availableStructures.length}
+                            >
+                              <SelectTrigger aria-label={`Fee structure for ${student.firstName}`}>
+                                <SelectValue placeholder="Fee structure" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableStructures.map((structure) => (
+                                  <SelectItem key={structure.id} value={structure.id}>
+                                    {structure.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Input
                             type="number"
                             min="0"
+                            disabled={isFinalClass}
                             aria-label={`Discount for ${student.firstName}`}
                             value={choice.discount ?? 0}
                             onChange={(event) =>

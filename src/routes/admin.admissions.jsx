@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { AdmissionsPage } from "@/pages/AdmissionsPage";
 
 function AdmissionsRoute() {
@@ -8,6 +8,6 @@ function AdmissionsRoute() {
 
 export const Route = createFileRoute("/admin/admissions")({
   validateSearch: (search) => ({ edit: typeof search.edit === "string" ? search.edit : undefined }),
-  head: () => ({ meta: [{ title: "Admissions — Edify School" }] }),
+  head: () => ({ meta: [{ title: "Admissions — NR Edify English Medium School" }] }),
   component: AdmissionsRoute,
 });

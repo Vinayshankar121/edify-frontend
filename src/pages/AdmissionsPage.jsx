@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { BulkAdmissionActions } from "@/components/BulkAdmissionActions";
 import { Field, KeyValue, PageHeader, SectionCard } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/api";
-import { refreshCollection } from "@/lib/store";
-import { KEYS } from "@/lib/storage";
+import { COLLECTIONS, refreshCollection } from "@/lib/store";
 import {
   useAcademicYears,
   useActiveYear,
@@ -57,6 +57,7 @@ const empty = (year, n) => ({
   structureId: "",
   discount: 0,
   initialPayment: 0,
+  initialPaymentReference: "",
   paymentMode: "Cash",
 });
 const phoneOk = (v) => !v || /^[6-9]\d{9}$/.test(v);
@@ -83,7 +84,9 @@ export function AdmissionsPage({ editId }) {
     setErrors((e) => ({ ...e, [k]: "" }));
   };
   const sections = classes.find((c) => c.name === f.className)?.sections ?? [];
-  const classStructures = structures.filter((s) => s.className === f.className && s.active);
+  const classStructures = structures.filter(
+    (s) => s.className === f.className && s.academicYear === f.academicYear && s.active,
+  );
   const structure = structures.find((s) => s.id === f.structureId);
   const total = structureTotal(structure);
   const validate = (i) => {
@@ -95,6 +98,8 @@ export function AdmissionsPage({ editId }) {
       if (!f.firstName.trim()) e.firstName = "Required";
       if (!f.lastName.trim()) e.lastName = "Required";
       if (!f.dob) e.dob = "Required";
+      else if (f.dob > today()) e.dob = "Date of birth cannot be in the future";
+      if (f.admissionDate > today()) e.admissionDate = "Admission date cannot be in the future";
       if (f.aadhaar && !/^\d{12}$/.test(f.aadhaar.replace(/\s/g, "")))
         e.aadhaar = "Aadhaar must be 12 digits";
     }
@@ -121,13 +126,15 @@ export function AdmissionsPage({ editId }) {
         e.discount = "Discount must be between 0 and total fee";
       if (f.initialPayment < 0 || f.initialPayment > total - f.discount)
         e.initialPayment = "Cannot exceed payable amount";
+      if (f.initialPayment > 0 && f.paymentMode !== "Cash" && !f.initialPaymentReference.trim())
+        e.initialPaymentReference = "Required for non-cash payments";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
   const next = () => validate(step) && setStep((s) => Math.min(s + 1, 4));
   const submit = async () => {
-    const { initialPayment, paymentMode, ...data } = f;
+    const { initialPayment, initialPaymentReference, paymentMode, ...data } = f;
     if (editing) {
       setStudents(students.map((s) => (s.id === editing.id ? { ...data, id: editing.id } : s)));
       toast.success("Student details updated.");
@@ -137,11 +144,11 @@ export function AdmissionsPage({ editId }) {
     try {
       const created = await apiRequest("/students", {
         method: "POST",
-        body: { ...data, initialPayment, paymentMode },
+        body: { ...data, initialPayment, initialPaymentReference, paymentMode },
       });
       await Promise.all([
-        refreshCollection(KEYS.students),
-        ...(initialPayment > 0 ? [refreshCollection(KEYS.payments)] : []),
+        refreshCollection(COLLECTIONS.students),
+        ...(initialPayment > 0 ? [refreshCollection(COLLECTIONS.payments)] : []),
       ]);
       if (created.payment) {
         toast.success(
@@ -159,6 +166,7 @@ export function AdmissionsPage({ editId }) {
         type={opts.type ?? "text"}
         value={String(f[k] ?? "")}
         placeholder={opts.placeholder}
+        max={opts.max}
         aria-invalid={!!errors[k]}
         onChange={(e) => set(k, opts.type === "number" ? Number(e.target.value) : e.target.value)}
       />
@@ -190,6 +198,22 @@ export function AdmissionsPage({ editId }) {
       <PageHeader
         title={editing ? "Edit student" : "New admission"}
         subtitle="Complete each step — fields marked * are required."
+        actions={
+          !editing && (
+            <BulkAdmissionActions
+              students={students}
+              classes={classes}
+              structures={structures}
+              years={years}
+              onCreated={async ({ hasPayments }) =>
+                Promise.all([
+                  refreshCollection(COLLECTIONS.students),
+                  ...(hasPayments ? [refreshCollection(COLLECTIONS.payments)] : []),
+                ])
+              }
+            />
+          )
+        }
       />
       <div className="surface animate-rise mb-6 p-5">
         <div className="flex items-center justify-between gap-2">
@@ -241,10 +265,10 @@ export function AdmissionsPage({ editId }) {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {inp("admissionNo", "Admission number", { required: true })}
             {inp("studentId", "Student ID")}
-            {inp("admissionDate", "Admission date", { type: "date" })}
+            {inp("admissionDate", "Admission date", { type: "date", max: today() })}
             {inp("firstName", "First name", { required: true })}
             {inp("lastName", "Last name", { required: true })}
-            {inp("dob", "Date of birth", { required: true, type: "date" })}
+            {inp("dob", "Date of birth", { required: true, type: "date", max: today() })}
             <Field label="Gender" required>
               <Select value={f.gender} onValueChange={(v) => set("gender", v)}>
                 <SelectTrigger>
@@ -296,7 +320,13 @@ export function AdmissionsPage({ editId }) {
         {step === 2 && (
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Academic year" required>
-              <Select value={f.academicYear} onValueChange={(v) => set("academicYear", v)}>
+              <Select
+                value={f.academicYear}
+                onValueChange={(v) => {
+                  set("academicYear", v);
+                  set("structureId", "");
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -417,6 +447,10 @@ export function AdmissionsPage({ editId }) {
                 </Select>
               </Field>
             )}
+            {!editing &&
+              f.initialPayment > 0 &&
+              f.paymentMode !== "Cash" &&
+              inp("initialPaymentReference", "Payment reference", { required: true })}
             {structure && (
               <div className="rounded-xl bg-accent p-4 text-sm text-accent-foreground md:col-span-3">
                 Total {inr(total)} − discount {inr(f.discount)} ={" "}

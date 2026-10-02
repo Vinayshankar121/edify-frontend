@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, GraduationCap, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, Eye, GraduationCap, Pencil, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -28,12 +28,14 @@ import {
   useStudents,
 } from "@/hooks/useSchoolData";
 import { feeSummary, fullName, inr } from "@/lib/fees";
+import { apiRequest } from "@/lib/api";
+import { COLLECTIONS, refreshCollection } from "@/lib/store";
 const ALL = "all";
 const PAGE = 12;
 export function StudentsPage({ base, initialQuery = "" }) {
   const isAdmin = base === "/admin";
   const navigate = useNavigate();
-  const { data: students, setData } = useStudents();
+  const { data: students } = useStudents();
   const { data: payments } = usePayments();
   const { data: structures } = useFeeStructures();
   const { data: classes } = useClasses();
@@ -238,10 +240,10 @@ export function StudentsPage({ base, initialQuery = "" }) {
                             <Button
                               size="icon"
                               variant="ghost"
-                              aria-label="Delete"
+                              aria-label="Archive"
                               onClick={() => setDel(s.id)}
                             >
-                              <Trash2 className="size-4 text-destructive" />
+                              <Archive className="size-4 text-destructive" />
                             </Button>
                           </>
                         )}
@@ -299,13 +301,14 @@ export function StudentsPage({ base, initialQuery = "" }) {
       </SectionCard>
       <ConfirmDialog
         open={!!del}
-        title="Delete student?"
-        description="The student record will be removed. Payment records are kept for audit."
+        title="Archive student?"
+        description="This hides the student from active lists. Admissions, fees, payments and receipts remain permanently available for audit."
         onCancel={() => setDel(null)}
-        onConfirm={() => {
-          setData(students.filter((s) => s.id !== del));
+        onConfirm={async () => {
+          await apiRequest(`/students/${del}/archive`, { method: "PATCH", body: {} });
+          await refreshCollection(COLLECTIONS.students);
           setDel(null);
-          toast.success("Student deleted.");
+          toast.success("Student archived. Fee and receipt history was preserved.");
         }}
       />
     </>

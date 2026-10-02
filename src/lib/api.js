@@ -1,16 +1,16 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
-const TOKEN_KEY = "edify_access_token";
+let accessToken = null;
 
 export function getAccessToken() {
-  return window.localStorage.getItem(TOKEN_KEY);
+  return accessToken;
 }
 
 export function setAccessToken(token) {
-  window.localStorage.setItem(TOKEN_KEY, token);
+  accessToken = token;
 }
 
 export function clearAccessToken() {
-  window.localStorage.removeItem(TOKEN_KEY);
+  accessToken = null;
 }
 
 export async function apiRequest(path, { method = "GET", body, headers = {} } = {}) {

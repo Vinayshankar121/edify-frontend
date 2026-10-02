@@ -1,5 +1,4 @@
 import { Download, Printer } from "lucide-react";
-import logo from "@/assets/edify-logo.png";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFeeStructures, usePayments, useSettings, useStudents } from "@/hooks/useSchoolData";
@@ -22,7 +21,13 @@ export function ReceiptDocument({ payment }) {
   return (
     <div className="bg-card p-8 text-foreground" style={{ fontFamily: "Inter, sans-serif" }}>
       <div className="flex items-center gap-4 border-b-2 border-primary pb-4">
-        <img src={logo} alt="Edify School" className="size-16" />
+        <img
+          src="/nr-edify-logo.svg"
+          alt="NR Edify English Medium School"
+          width={112}
+          height={80}
+          className="h-20 w-28 shrink-0 object-contain"
+        />
         <div className="flex-1">
           <h2 className="text-2xl font-extrabold uppercase tracking-wide">{settings.schoolName}</h2>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">

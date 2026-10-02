@@ -22,7 +22,6 @@ import {
 } from "@/hooks/useSchoolData";
 import { feeSummary, fullName, headBreakdown, inr } from "@/lib/fees";
 import { printDocument } from "@/lib/print";
-import logo from "@/assets/edify-logo.png";
 export function StudentProfile({ id, base }) {
   const { data: students, ready } = useStudents();
   const { data: payments } = usePayments();
@@ -80,7 +79,13 @@ export function StudentProfile({ id, base }) {
 
       <div id="student-profile-print">
         <div className="profile-print-school-header mb-5 items-center gap-4 border-b-2 border-primary pb-4">
-          <img src={logo} alt="Edify School" className="size-16 shrink-0 object-contain" />
+          <img
+            src="/nr-edify-logo.svg"
+            alt="NR Edify English Medium School"
+            width={80}
+            height={64}
+            className="h-16 w-20 shrink-0 object-contain"
+          />
           <div className="min-w-0 flex-1">
             <h2 className="text-2xl font-extrabold uppercase tracking-wide">
               {settings.schoolName}

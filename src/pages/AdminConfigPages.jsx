@@ -561,7 +561,7 @@ export function FeeTermsPage() {
   const save = () => {
     if (draft.some((t) => !t.name || !t.dueDate || t.amount <= 0))
       return toast.error("Each installment needs a name, amount and due date.");
-    if (sum !== total)
+    if (Math.round(sum * 100) !== Math.round(total * 100))
       return toast.error(`Installments total ${inr(sum)} but the annual fee is ${inr(total)}.`);
     setData([...terms.filter((t) => t.structureId !== current), ...draft]);
     toast.success("Installment schedule saved.");
@@ -814,7 +814,7 @@ export function CashiersPage() {
       )
     )
       e.username = "Username already taken";
-    if (!edit.id && edit.password.length < 6) e.password = "Minimum 6 characters";
+    if (!edit.id && edit.password.length < 12) e.password = "Minimum 12 characters";
     setErrors(e);
     if (Object.keys(e).length) return;
     if (edit.id) {
@@ -1014,8 +1014,8 @@ export function CashiersPage() {
           <DialogFooter>
             <Button
               onClick={() => {
-                if (newPass.length < 6)
-                  return toast.error("Password must be at least 6 characters.");
+                if (newPass.length < 12)
+                  return toast.error("Password must be at least 12 characters.");
                 setData(
                   cashiers.map((c) => (c.id === reset?.id ? { ...c, password: newPass } : c)),
                 );
@@ -1072,7 +1072,8 @@ export function SettingsPage() {
           {f("website", "Website")}
           <Field label="School logo">
             <p className="text-sm text-muted-foreground">
-              The official Edify School logo is used across the app and on receipts.
+              The official NR Edify English Medium School logo is used across the app and on
+              receipts.
             </p>
           </Field>
           <Field label="Address" className="md:col-span-2">
